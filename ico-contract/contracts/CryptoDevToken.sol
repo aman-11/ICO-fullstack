@@ -17,11 +17,39 @@ contract CryptoDevToken is ERC20 {
     //so convert it to big number
     uint256 public constant tokensPerNFT = 10 * 10**18;
 
+    //decide the market cap
+    uint256 public marketCap = 10000 * 10**18;
+
+    //min amount to purchase
+    uint256 public constant minInvest = 0.005 ether; //5 token
+
     //we need to keep a track of tokenID which is getting claimed by the end users
     mapping(uint256 => bool) public tokenIdsClaimed;
 
     constructor(address _ICryptoDevs) ERC20("Useless", "USE") {
         cryptoDevsNFT = ICryptoDevs(_ICryptoDevs);
+    }
+
+    //general public for those who dont have the NFT
+    // @param _amount -> no fo token user want just like share as you decide how many you want to purchase
+    function mint(uint256 _amountOfTokens) public payable {
+        require(
+            msg.value >= minInvest,
+            "Minimum amount to invest for this token is 0.005 ETH"
+        );
+        //check for the moeny send is correct for that no of token
+        require(
+            msg.value == (tokenPrice * _amountOfTokens),
+            "Please send the correct value"
+        );
+
+        //convert _amountOfTokens bignumber as mint() internal function takes it like that
+        uint256 amountOfTokensBigInt = _amountOfTokens * 10**18;
+        //call the totalSupply() internal function to know whats the current status of token got minted as we need to check with our max Supply
+        require(totalSupply() <= marketCap, "No tokens in market");
+
+        //not mint the  tokens using _mint() internal functioon inside this standard function Transfer() gets called
+        _mint(msg.sender, amountOfTokensBigInt);
     }
 
     //if i am the user and i have 2 nft i will claim the token in a name of that 2 nft
