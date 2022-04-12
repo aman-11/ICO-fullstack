@@ -46,7 +46,10 @@ contract CryptoDevToken is ERC20 {
         //convert _amountOfTokens bignumber as mint() internal function takes it like that
         uint256 amountOfTokensBigInt = _amountOfTokens * 10**18;
         //call the totalSupply() internal function to know whats the current status of token got minted as we need to check with our max Supply
-        require(totalSupply() <= marketCap, "No tokens in market");
+        require(
+            totalSupply() + amountOfTokensBigInt <= marketCap,
+            "No tokens in market"
+        );
 
         //not mint the  tokens using _mint() internal functioon inside this standard function Transfer() gets called
         _mint(msg.sender, amountOfTokensBigInt);
@@ -67,7 +70,7 @@ contract CryptoDevToken is ERC20 {
         uint256 amount = 0;
         for (uint256 i = 0; i < ownedNFT; i++) {
             uint256 tokenId = cryptoDevsNFT.tokenOfOwnerByIndex(msg.sender, i);
-            if (!tokenIdsClaimed) {
+            if (!tokenIdsClaimed[tokenId]) {
                 // if not , then user will be able to claim
                 // claim all token
                 amount += 1;
