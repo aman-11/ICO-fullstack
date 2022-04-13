@@ -1,11 +1,16 @@
 import Head from "next/head";
 import Image from "next/image";
-import { useState } from "react";
-import { useAccount, useConnect, useEnsAvatar } from "wagmi";
+import { useEffect, useState } from "react";
+import { useAccount, useConnect, useProvider, useSigner } from "wagmi";
+import { BigNumber, Contract, providers, utils } from "ethers";
 import coverImage from "../public/cover.svg";
+import { ICOContractAddress, ICOabi } from "../constants/icoVariable";
 
 export default function Home() {
   const log = console.log.bind(console);
+  const provider = useProvider();
+  const [getSigner] = useSigner();
+  const [overallToken, setOverallToken] = useState(0);
   const [{ data }, disconnect] = useAccount();
   const [
     {
@@ -13,6 +18,30 @@ export default function Home() {
     },
     connect,
   ] = useConnect();
+
+  // log("connector", connectors[0]);
+
+  //Todo 1. get the no og token overall minted in Platform by - totalSupply()  internal function erc20
+  const getOverallTokensMinted = async () => {
+    try {
+      //get the count of the token minted - ICO Contract
+      const icoContract = new Contract(ICOContractAddress, ICOabi, provider);
+      const _overallTokenMinted = await icoContract.totalSupply();
+
+      setOverallToken(_overallTokenMinted);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  //Todo 2. get the no of token minted by user now
+  //TOdo 3. get the no of nft token minted by user [no of token] ? claim() : public mint()
+
+  useEffect(() => {
+    async function connecWallet() {
+      await connect(connectors[0]);
+    }
+  }, []);
 
   const renderButton = () => {
     if (connected) {
@@ -47,11 +76,14 @@ export default function Home() {
         <header className="flex border-b justify-end bg-gray-500">
           <div className="flex text-xs flex-col mb-2 mt-2 space-y-1 text-white">
             <p className=" mr-16 text-xs font-normal">
-              Hello, {data?.address.slice(0, 5)} ....
+              Hello, {data?.address.slice(0, 5)}....
               {data?.address.slice(data?.address.length - 4)}
             </p>
             <div>
-              <button onClick={disconnect} className="text-sm font-bold underline underline-offset-2">
+              <button
+                onClick={disconnect}
+                className="text-sm font-bold underline underline-offset-2"
+              >
                 Logout
               </button>
             </div>
@@ -74,8 +106,9 @@ export default function Home() {
           </p>
           <p className="descText">
             {" "}
-            Overall <span className="underline font-semibold">
-              2500/10000
+            Overall{" "}
+            <span className="underline font-semibold">
+              {overallToken}/10000
             </span>{" "}
             have been minted!!!{" "}
           </p>
