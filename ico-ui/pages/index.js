@@ -5,12 +5,14 @@ import { useAccount, useConnect, useProvider } from "wagmi";
 import { ethers, BigNumber } from "ethers";
 import coverImage from "../public/cover.svg";
 import { ICOContractAddress, ICOabi } from "../constants/icoVariable";
-import detectEthereumProvider from "@metamask/detect-provider";
+import { NFTContarctAddress, NFTabi } from "../constants/nftVariable";
+import ProgressBar from "@badrap/bar-of-progress";
 
 export default function Home() {
   // const provider = useProvider();
   const [overallToken, setOverallToken] = useState(0);
   const [balanceOfCDToken, setBalanceOfCDToken] = useState(0);
+  const [tokensToBeClaimed, setTokensToBeClaimed] = useState(0);
   const [{ data }, disconnect] = useAccount();
   const [
     {
@@ -18,6 +20,13 @@ export default function Home() {
     },
     connect,
   ] = useConnect();
+
+  const progress = new ProgressBar({
+    size: 3,
+    color: "#FE595E",
+    className: "z-50",
+    delay: 1200,
+  });
 
   //Todo 1. get the no of token overall minted - totalSupply()  internal function erc20
   const getOverallTokensMinted = async () => {
@@ -31,9 +40,12 @@ export default function Home() {
           provider
         );
         const _overallTokenMinted = await icoContract.totalSupply();
-        // console.log("overrallvalue", _overallTokenMinted.toString());
 
-        setOverallToken(_overallTokenMinted.toString());
+        const convertIntOverallToken = parseInt(
+          ethers.utils.formatEther(_overallTokenMinted)
+        );
+        // console.log("overrallvalue", convertIntOverallToken);
+        setOverallToken(convertIntOverallToken);
       } catch (error) {
         console.error(error);
       }
@@ -59,7 +71,8 @@ export default function Home() {
         //calling the balanceOF(address)
         const balance = await icoContract.balanceOf(address);
         // console.log("balance of cd token", balance);
-        setBalanceOfCDToken(balance.toString());
+        const convertToInt = parseInt(ethers.utils.formatEther(balance));
+        setBalanceOfCDToken(convertToInt);
       } else {
         console.warn("waiting to setup conncntn");
       }
@@ -68,7 +81,82 @@ export default function Home() {
     }
   };
 
-  //TOdo 3. get the no of nft token minted by user [no of token] ? claim() : public mint()
+  //TOdo 3. get the no of nft token minted by user is [no of token] THEN claim() OR public mint()
+  const getNumOfNFTToken = async () => {
+    try {
+      if (connected) {
+        const provider = await getProviderOrSigner();
+
+        const nftContract = new ethers.Contract(
+          NFTContarctAddress,
+          NFTabi,
+          provider
+        );
+
+        const icoContract = new ethers.Contract(
+          ICOContractAddress,
+          ICOabi,
+          provider
+        );
+
+        //get the balance of no of token holded by any address - balanceOf(address owner)
+        const signer = await getProviderOrSigner(true);
+        const address = signer.getAddress();
+        const nftBalance = await nftContract.balanceOf(address);
+
+        if (nftBalance.toString() === "0") {
+          setTokensToBeClaimed(nftBalance.toString());
+        } else {
+          //TODO a. check for the tokenID -tokenOfOwnerByIndex(address owner, uint256 index) and then which is already clamied tokenIdsClaimed()
+          var amount = 0;
+          for (let i = 0; i < nftBalance; i++) {
+            const tokenId = await nftContract.tokenOfOwnerByIndex(address, i);
+            const claimed = await icoContract.tokenIdsClaimed(tokenId);
+
+            if (!claimed) {
+              amount++;
+            }
+            // console.log("amount", amount);
+            setTokensToBeClaimed(amount.toString());
+          }
+        }
+      } else {
+        console.warn("waiting to setup conncntn");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  //TODO 4. claim token against NFT
+  const claimTokensOnNFT = async () => {
+    try {
+      if (connected) {
+        progress.start();
+        const signer = await getProviderOrSigner(true);
+
+        const icoContract = new ethers.Contract(
+          ICOContractAddress,
+          ICOabi,
+          signer
+        );
+
+        const txn = await icoContract.claim();
+        await txn.wait();
+
+        //update ui var
+        await getOverallTokensMinted();
+        await getBalanceOfCryptoDevTokens();
+        await getNumOfNFTToken();
+        progress.finish();
+      } else {
+        console.warn("waiting to setup conncntn");
+      }
+    } catch (error) {
+      progress.finish();
+      console.error(error);
+    }
+  };
 
   const getProviderOrSigner = async (needSigner = false) => {
     const { ethereum } = window;
@@ -87,6 +175,7 @@ export default function Home() {
   const onPageLoadAction = async () => {
     await getOverallTokensMinted();
     await getBalanceOfCryptoDevTokens();
+    await getNumOfNFTToken();
   };
 
   useEffect(() => {
@@ -150,11 +239,15 @@ export default function Home() {
             {" "}
             You can claim or mint Crypto Dev tokens here
           </p>
-          <p className="descText">
-            You have minted{" "}
-            <span className="underline font-semibold">{balanceOfCDToken}</span>{" "}
-            Crypto Dev Tokens
-          </p>
+          {connected && (
+            <p className="descText">
+              You have minted{" "}
+              <span className="underline font-semibold">
+                {balanceOfCDToken}
+              </span>{" "}
+              Crypto Dev Tokens
+            </p>
+          )}
           <p className="descText">
             {" "}
             Overall{" "}
@@ -163,6 +256,27 @@ export default function Home() {
             </span>{" "}
             have been minted!!!{" "}
           </p>
+
+          {connected && (
+            <div className="border-green-600  border-2 items-center justify-between flex w-1/2 mt-3 p-3">
+              <p>
+                {" "}
+                <span className="underline font-semibold">
+                  {Number(tokensToBeClaimed) * 10} Tokens
+                </span>{" "}
+                {Number(tokensToBeClaimed) != 0
+                  ? "can be claimed!"
+                  : "- You need to have atleast one Crypto Dev NFT!"}
+              </p>
+              <p
+                onClick={claimTokensOnNFT}
+                className="text-lg font-bold text-green-600 underline self-center cursor-pointer underline-offset-2 hover:text-red-600 hover:scale-90 duration-150 transition ease-out"
+              >
+                {Number(tokensToBeClaimed) != 0 ? " Claim Now!" : ""}
+              </p>
+            </div>
+          )}
+
           {renderButton()}
         </div>
 
