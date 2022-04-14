@@ -10,7 +10,9 @@ import ProgressBar from "@badrap/bar-of-progress";
 
 export default function Home() {
   // const provider = useProvider();
+  const zero = BigNumber.from(0);
   const [overallToken, setOverallToken] = useState(0);
+  const [tokenAmount, setTokenAmount] = useState(zero);
   const [balanceOfCDToken, setBalanceOfCDToken] = useState(0);
   const [tokensToBeClaimed, setTokensToBeClaimed] = useState(0);
   const [{ data }, disconnect] = useAccount();
@@ -158,6 +160,37 @@ export default function Home() {
     }
   };
 
+  //TODO 5. functio to mint() by any user
+  const publicMint = async (amount) => {
+    try {
+      progress.start();
+      const signer = await getProviderOrSigner(true);
+      const icoContract = new ethers.Contract(
+        ICOContractAddress,
+        ICOabi,
+        signer
+      );
+
+      //calc the mount of ether to pass down [price of 1 tokene x no of token]
+      let value = 0.001 * amount;
+      // mint(uint256 amount)
+      const txn = await icoContract.mint(amount, {
+        value: ethers.utils.parseEther(value.toString()),
+      });
+      await txn.wait();
+
+      //update ui var
+      await getOverallTokensMinted();
+      await getBalanceOfCryptoDevTokens();
+      await getNumOfNFTToken();
+
+      progress.finish();
+    } catch (error) {
+      progress.finish();
+      console.error(error);
+    }
+  };
+
   const getProviderOrSigner = async (needSigner = false) => {
     const { ethereum } = window;
     if (ethereum) {
@@ -185,8 +218,17 @@ export default function Home() {
   const renderButton = () => {
     if (connected) {
       return (
-        <div className="flex justify-start">
-          <button className="p-3 text-lg font-semibold text-white bg-[#FF6366] mt-4 hover:text-[#FF6366] hover:bg-white hover:border-2 duration-200 ease-out hover:border-black">
+        <div className="flex justify-start items-center">
+          <input
+            type="number"
+            className="border-2 border-gray-500 rounded-md h-10 mt-3  mr-3"
+            placeholder="Amount of Tokens"
+            onChange={(e) => setTokenAmount(BigNumber.from(e.target.value))}
+          />
+          <button
+            onClick={() => publicMint(tokenAmount)}
+            className="p-3 text-lg font-semibold text-white bg-[#FF6366] mt-4 hover:text-[#FF6366] hover:bg-white hover:border-2 duration-200 ease-out hover:border-black"
+          >
             Mint Tokens
           </button>
         </div>
@@ -266,7 +308,7 @@ export default function Home() {
                 </span>{" "}
                 {Number(tokensToBeClaimed) != 0
                   ? "can be claimed!"
-                  : "- You need to have atleast one Crypto Dev NFT!"}
+                  : " to be claimed- You need to have atleast one Crypto Dev NFT!"}
               </p>
               <p
                 onClick={claimTokensOnNFT}
