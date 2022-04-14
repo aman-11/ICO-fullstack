@@ -1,11 +1,11 @@
-export const ICOContractAddress = 0x5b6bd6cf25cad9a081e0363b5b89fc0df4bcc1b1;
+export const ICOContractAddress = "0x411660ce3e8fB2DdCb9F973B4359bDd172f05a62";
 
 export const ICOabi = [
   {
     inputs: [
       {
         internalType: "address",
-        name: "_ICryptoDevs",
+        name: "_cryptoDevsContract",
         type: "address",
       },
     ],
@@ -203,20 +203,7 @@ export const ICOabi = [
   },
   {
     inputs: [],
-    name: "marketCap",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "minInvest",
+    name: "maxTotalSupply",
     outputs: [
       {
         internalType: "uint256",
@@ -231,7 +218,7 @@ export const ICOabi = [
     inputs: [
       {
         internalType: "uint256",
-        name: "_amountOfTokens",
+        name: "amount",
         type: "uint256",
       },
     ],

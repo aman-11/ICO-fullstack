@@ -1,15 +1,14 @@
 import Head from "next/head";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useAccount, useConnect, useProvider, useSigner } from "wagmi";
-import { BigNumber, Contract, providers, utils } from "ethers";
+import { useAccount, useConnect, useProvider } from "wagmi";
+import { ethers, BigNumber } from "ethers";
 import coverImage from "../public/cover.svg";
 import { ICOContractAddress, ICOabi } from "../constants/icoVariable";
+import detectEthereumProvider from "@metamask/detect-provider";
 
 export default function Home() {
-  const log = console.log.bind(console);
-  const provider = useProvider();
-  const [getSigner] = useSigner();
+  // const provider = useProvider();
   const [overallToken, setOverallToken] = useState(0);
   const [{ data }, disconnect] = useAccount();
   const [
@@ -19,29 +18,55 @@ export default function Home() {
     connect,
   ] = useConnect();
 
-  // log("connector", connectors[0]);
-
-  //Todo 1. get the no og token overall minted in Platform by - totalSupply()  internal function erc20
+  //Todo 1. get the no of token overall minted - totalSupply()  internal function erc20
   const getOverallTokensMinted = async () => {
-    try {
-      //get the count of the token minted - ICO Contract
-      const icoContract = new Contract(ICOContractAddress, ICOabi, provider);
-      const _overallTokenMinted = await icoContract.totalSupply();
+    if (connected) {
+      try {
+        const provider = await getProviderOrSigner();
+        //get the count of the token minted - ICO Contract
+        const icoContract = new ethers.Contract(
+          ICOContractAddress,
+          ICOabi,
+          provider
+        );
+        const _overallTokenMinted = await icoContract.totalSupply();
+        // console.log("overrallvalue", _overallTokenMinted.toString());
 
-      setOverallToken(_overallTokenMinted);
-    } catch (error) {
-      console.error(error);
+        setOverallToken(_overallTokenMinted.toString());
+      } catch (error) {
+        console.error(error);
+      }
+    } else {
+      console.warn("waiting to setup conncntn");
     }
   };
 
-  //Todo 2. get the no of token minted by user now
+  //Todo 2. get the no of token minted by user till now
+  
+
   //TOdo 3. get the no of nft token minted by user [no of token] ? claim() : public mint()
 
-  useEffect(() => {
-    async function connecWallet() {
-      await connect(connectors[0]);
+  const getProviderOrSigner = async (needSigner = false) => {
+    const { ethereum } = window;
+    if (ethereum) {
+      const provider = new ethers.providers.Web3Provider(ethereum);
+
+      if (needSigner) {
+        const signer = provider.getSigner();
+        return signer;
+      }
+
+      return provider;
     }
-  }, []);
+  };
+
+  const onPageLoadAction = async () => {
+    await getOverallTokensMinted();
+  };
+
+  useEffect(() => {
+    onPageLoadAction();
+  }, [connected]);
 
   const renderButton = () => {
     if (connected) {
