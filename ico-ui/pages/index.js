@@ -10,6 +10,7 @@ import detectEthereumProvider from "@metamask/detect-provider";
 export default function Home() {
   // const provider = useProvider();
   const [overallToken, setOverallToken] = useState(0);
+  const [balanceOfCDToken, setBalanceOfCDToken] = useState(0);
   const [{ data }, disconnect] = useAccount();
   const [
     {
@@ -41,8 +42,31 @@ export default function Home() {
     }
   };
 
-  //Todo 2. get the no of token minted by user till now
-  
+  //Todo 2. get the no of token minted by user till now using -- balanceOf(address account)
+  const getBalanceOfCryptoDevTokens = async () => {
+    try {
+      if (connected) {
+        const provider = await getProviderOrSigner();
+
+        const icoContract = new ethers.Contract(
+          ICOContractAddress,
+          ICOabi,
+          provider
+        );
+        const signer = await getProviderOrSigner(true);
+        const address = signer.getAddress();
+
+        //calling the balanceOF(address)
+        const balance = await icoContract.balanceOf(address);
+        // console.log("balance of cd token", balance);
+        setBalanceOfCDToken(balance.toString());
+      } else {
+        console.warn("waiting to setup conncntn");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   //TOdo 3. get the no of nft token minted by user [no of token] ? claim() : public mint()
 
@@ -62,6 +86,7 @@ export default function Home() {
 
   const onPageLoadAction = async () => {
     await getOverallTokensMinted();
+    await getBalanceOfCryptoDevTokens();
   };
 
   useEffect(() => {
@@ -126,7 +151,8 @@ export default function Home() {
             You can claim or mint Crypto Dev tokens here
           </p>
           <p className="descText">
-            You have minted <span className="underline font-semibold">200</span>{" "}
+            You have minted{" "}
+            <span className="underline font-semibold">{balanceOfCDToken}</span>{" "}
             Crypto Dev Tokens
           </p>
           <p className="descText">
