@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useAccount, useConnect, useProvider } from "wagmi";
+import { useAccount, useConnect } from "wagmi";
 import { ethers, BigNumber } from "ethers";
 import coverImage from "../public/cover.svg";
 import { ICOContractAddress, ICOabi } from "../constants/icoVariable";
@@ -9,7 +9,6 @@ import { NFTContarctAddress, NFTabi } from "../constants/nftVariable";
 import ProgressBar from "@badrap/bar-of-progress";
 
 export default function Home() {
-  // const provider = useProvider();
   const zero = BigNumber.from(0);
   const [overallToken, setOverallToken] = useState(0);
   const [tokenAmount, setTokenAmount] = useState(zero);
@@ -160,9 +159,14 @@ export default function Home() {
     }
   };
 
-  //TODO 5. functio to mint() by any user
+  //TODO 5. function to mint() by any user
   const publicMint = async (amount) => {
     try {
+      if (amount < 5) {
+        alert("Minimum token to be minted is 5");
+        return;
+      }
+
       progress.start();
       const signer = await getProviderOrSigner(true);
       const icoContract = new ethers.Contract(
@@ -223,11 +227,16 @@ export default function Home() {
             type="number"
             className="border-2 border-gray-500 rounded-md h-10 mt-3  mr-3"
             placeholder="Amount of Tokens"
-            onChange={(e) => setTokenAmount(BigNumber.from(e.target.value))}
+            onChange={(e) =>
+              e.target.value > 0
+                ? setTokenAmount(BigNumber.from(e.target.value))
+                : setTokenAmount(BigNumber.from(zero))
+            }
           />
           <button
+            disabled={tokenAmount <= zero}
             onClick={() => publicMint(tokenAmount)}
-            className="p-3 text-lg font-semibold text-white bg-[#FF6366] mt-4 hover:text-[#FF6366] hover:bg-white hover:border-2 duration-200 ease-out hover:border-black"
+            className="p-3 text-lg font-semibold text-white bg-[#FF6366] mt-4 hover:text-[#FF6366] hover:bg-white hover:border-2 duration-200 ease-out hover:border-black disabled:bg-gray-400 disabled:border-none disabled:text-white"
           >
             Mint Tokens
           </button>
