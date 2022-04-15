@@ -217,6 +217,8 @@ export default function Home() {
 
   useEffect(() => {
     onPageLoadAction();
+
+    ethereum.on("accountsChanged", (accounts) => onPageLoadAction());
   }, [connected]);
 
   const renderButton = () => {
